@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Problemas de lógica</title>
+<style>
+:root{--paper:#f5f9fd;--grid:#d3e2f1;--ink:#1c2b55;--soft:#5b6b8f;--ans:#c4284f;--card:#ffffffd9;--line:#b9cde3;--bar:#2b6fd6}
+@media (prefers-color-scheme:dark){:root{--paper:#121a2e;--grid:#1f2c4a;--ink:#e6edff;--soft:#93a3c8;--ans:#ff7a9c;--card:#162038d9;--line:#2d3d63;--bar:#6aa2ff}}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--paper);color:var(--ink);font-family:system-ui,"Segoe UI",sans-serif;
+background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:32px 32px;
+display:flex;flex-direction:column;align-items:center;padding:16px;gap:16px}
+.board{width:min(900px,100%);background:var(--card);border:2px solid var(--line);border-left:6px solid var(--ans);border-radius:6px;padding:24px;backdrop-filter:blur(2px)}
+.meta{display:flex;justify-content:space-between;gap:12px;color:var(--soft);font-size:.95rem}
+.q{font-family:"Segoe Print","Bradley Hand","Chalkboard SE","Comic Sans MS",cursive;font-size:calc(clamp(1.3rem,3.6vw,2.1rem)*var(--z,1));line-height:1.45;margin:22px 0 16px;overflow-wrap:anywhere}
+.sol{opacity:0;transition:opacity .3s;margin-bottom:16px}
+.sol.on{opacity:1}
+.a{font-family:"Segoe Print","Bradley Hand","Chalkboard SE","Comic Sans MS",cursive;color:var(--ans);font-size:calc(clamp(1.2rem,3.2vw,1.9rem)*var(--z,1));margin:0 0 8px}
+.sol ol{margin:0;padding-left:1.4em;font-size:calc(1.05rem*var(--z,1));line-height:1.55}
+.sol li{margin:3px 0}
+.bar{height:10px;background:var(--grid);border-radius:5px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--bar)}
+.bar.res i{background:var(--ans)}
+.ctl{width:min(900px,100%);display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px}
+label{display:flex;flex-direction:column;gap:4px;font-size:.9rem;color:var(--soft)}
+select,input[type=range]{width:100%;font:inherit;color:var(--ink)}
+select{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:6px}
+.chk{flex-direction:row;align-items:center;gap:8px;color:var(--ink)}
+.chk input{width:auto}
+.btns{display:flex;gap:8px;align-items:end;flex-wrap:wrap}
+button{font:inherit;cursor:pointer;background:var(--ink);color:var(--paper);border:0;border-radius:4px;padding:9px 14px}
+button.alt{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+details{grid-column:1/-1;border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;color:var(--soft)}
+#cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px 12px;margin-top:10px}
+:focus-visible{outline:3px solid var(--bar);outline-offset:2px}
+</style>
+</head>
+<body>
+<main class="board">
+  <div class="meta"><span id="tipo"></span><span id="cuenta"></span></div>
+  <div class="q" id="q" aria-live="polite"></div>
+  <div class="sol" id="sol"><p class="a" id="a"></p><ol id="e"></ol></div>
+  <div class="bar" id="bar"><i></i></div>
+</main>
+
+<section class="ctl">
+  <label>Dificultad
+    <select id="niv"><option value="0">Todas</option><option value="1">Fácil</option><option value="2">Media</option><option value="3">Difícil</option></select></label>
+  <label>Tiempo para pensar: <b id="tqv">30</b> s
+    <input type="range" id="tq" min="5" max="120" step="5" value="30"></label>
+  <label>Tiempo de la explicación: <b id="trv">25</b> s
+    <input type="range" id="tr" min="5" max="120" step="5" value="25"></label>
+  <label>Velocidad
+    <select id="vel"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label>
+  <label>Tamaño de letra
+    <input type="range" id="z" min="0.7" max="1.8" step="0.1" value="1"></label>
+  <label class="chk"><input type="checkbox" id="auto" checked> Pasar al siguiente solo</label>
+  <label class="chk"><input type="checkbox" id="voz"> Leer en voz alta</label>
+  <div class="btns">
+    <button id="ver">Ver solución</button>
+    <button id="pausa" class="alt">Pausar</button>
+    <button id="sig" class="alt">Siguiente</button>
+  </div>
+  <details open><summary>Tipos de problema</summary><div id="cats"></div></details>
+</section>
+
+<script>
+const R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a, P=a=>a[R(0,a.length-1)], $=id=>document.getElementById(id);
+const C=["Secuencias","Acertijos","Deducción","Números y edades","Conteo"], NIV=["","Fácil","Media","Difícil"];
+
+// Banco: [tipo, dificultad, problema, respuesta, pasos]
+const B=[
+[1,1,"Un granjero tiene 17 ovejas. Se mueren todas menos 9. ¿Cuántas le quedan?","9 ovejas",["Lee con cuidado: «todas menos 9».","Eso significa que 9 ovejas no se mueren.","Quedan 9 vivas; el 17 solo es un dato que distrae."]],
+[1,1,"Si hay 3 manzanas y tomas 2, ¿cuántas manzanas tienes?","2 manzanas",["La pregunta es cuántas tienes tú, no cuántas quedan.","Tomaste 2, así que tienes 2.","En la mesa queda 1, pero esa ya no es tuya."]],
+[1,1,"¿Cuántos meses del año tienen 28 días?","Los 12",["Todos los meses tienen al menos 28 días.","Febrero tiene 28 y los demás tienen 30 o 31, que también incluyen esos 28.","Por eso la respuesta son los 12 meses."]],
+[1,2,"Un médico te da 3 pastillas y te dice que tomes una cada media hora. ¿Cuánto dura el tratamiento?","1 hora",["Tomas la primera de inmediato (minuto 0).","La segunda, 30 minutos después.","La tercera, otros 30 minutos más tarde: minuto 60.","Hay 2 intervalos de 30 minutos entre 3 pastillas, no 3 intervalos."]],
+[1,2,"Un bate y una pelota cuestan $110 juntos. El bate cuesta $100 más que la pelota. ¿Cuánto cuesta la pelota?","$5",["Si la pelota cuesta p, el bate cuesta p + 100.","Juntos: p + (p + 100) = 110, o sea 2p = 10.","Entonces p = 5 y el bate cuesta $105.","Comprobación: 105 + 5 = 110 y 105 − 5 = 100."]],
+[1,2,"Si 5 máquinas hacen 5 piezas en 5 minutos, ¿cuánto tardan 100 máquinas en hacer 100 piezas?","5 minutos",["Cada máquina hace 1 pieza en 5 minutos.","Con 100 máquinas, cada una hace su pieza al mismo tiempo.","Por eso hacen 100 piezas en 5 minutos, no en 100."]],
+[1,2,"En un lago, un lirio duplica su tamaño cada día. Si tarda 48 días en cubrir todo el lago, ¿cuántos días tarda en cubrir la mitad?","47 días",["Si cada día duplica su tamaño, el día anterior ocupaba la mitad.","El día 48 cubre todo el lago.","Por lo tanto, el día 47 cubría la mitad."]],
+[1,3,"Una rana está en un pozo de 10 metros. De día sube 3 metros y de noche resbala 2. ¿En cuántos días sale?","8 días",["Cada día completo (día y noche) avanza 3 − 2 = 1 metro.","Al final del día 7 está a 7 metros.","El día 8 sube 3 metros y llega a 10: sale antes de que llegue la noche.","Por eso son 8 días y no 10."]],
+[1,3,"Tienes una jarra de 3 litros y otra de 5 litros, sin marcas. ¿Cómo mides exactamente 4 litros?","Quedan 4 litros en la jarra de 5",["Llena la jarra de 5 L.","Vierte de ella en la de 3 L hasta llenarla: en la de 5 quedan 2 L.","Vacía la de 3 L y pasa los 2 L de la de 5 a la de 3.","Llena otra vez la de 5 L.","Vierte de la de 5 en la de 3 hasta llenarla: solo le cabe 1 L más.","En la de 5 L quedan 5 − 1 = 4 L."]],
+[1,3,"Tienes un reloj de arena de 4 minutos y otro de 7. ¿Cómo mides exactamente 9 minutos?","Volteando los relojes en los minutos 0, 4, 7 y 8",["Minuto 0: voltea los dos relojes.","Minuto 4: se acaba el de 4. Voltéalo (al de 7 le quedan 3 minutos).","Minuto 7: se acaba el de 7. Voltéalo (el de 4 lleva 3 minutos corriendo y le queda 1).","Minuto 8: se acaba el de 4. Al de 7 le ha corrido 1 minuto; voltéalo para que ese minuto de arena vuelva a caer.","Minuto 9: se acaba el de 7. Ya pasaron exactamente 9 minutos."]],
+[2,2,"Dani llegó antes que Ana. Ana llegó antes que Beto. Beto llegó antes que Carla. ¿Quién llegó en último lugar?","Carla",["Dani antes que Ana: Dani → Ana.","Ana antes que Beto: Dani → Ana → Beto.","Beto antes que Carla: Dani → Ana → Beto → Carla.","El último lugar es de Carla."]],
+[2,2,"Pedro, Juan y Luis usan gorras de colores distintos: roja, azul y verde. Pedro no usa verde ni azul. Juan no usa azul. ¿Qué color usa cada uno?","Pedro roja, Juan verde y Luis azul",["Pedro no usa verde ni azul, así que usa la roja.","Quedan azul y verde para Juan y Luis.","Juan no usa azul, así que usa la verde.","A Luis le queda la azul."]],
+[2,3,"En una isla, los caballeros siempre dicen la verdad y los mentirosos siempre mienten. A dice sobre sí mismo y sobre B: «Los dos somos mentirosos». ¿Qué es cada uno?","A es mentiroso y B es caballero",["Supón que A es caballero: entonces lo que dice es verdad, y sería mentiroso. Es una contradicción.","Entonces A es mentiroso, y su frase es falsa.","Si la frase «los dos somos mentirosos» es falsa, al menos uno es caballero.","A es mentiroso, así que B tiene que ser el caballero."]],
+[2,3,"Hay tres cajas con las etiquetas «Manzanas», «Naranjas» y «Mezcla». Todas las etiquetas están mal. Sacas una fruta de la caja «Mezcla» y es una manzana. ¿Qué contiene cada caja?","«Mezcla» tiene manzanas, «Naranjas» tiene la mezcla y «Manzanas» tiene naranjas",["La caja «Mezcla» está mal etiquetada, así que no tiene mezcla: como salió una manzana, solo tiene manzanas.","La caja «Naranjas» no puede tener naranjas (etiqueta mala) ni manzanas (ya están en la otra caja): tiene la mezcla.","A la caja «Manzanas» le quedan las naranjas.","Comprobación: ninguna etiqueta coincide con su contenido."]],
+[2,3,"Un hombre quiere cruzar un río con un lobo, una cabra y una col. El bote solo lleva al hombre y una cosa. Si quedan solos, el lobo se come a la cabra y la cabra se come la col. ¿Cómo cruza?","En 7 viajes, empezando con la cabra",["Viaje 1: cruza con la cabra.","Viaje 2: regresa solo.","Viaje 3: cruza con el lobo.","Viaje 4: regresa con la cabra (para no dejarla con el lobo).","Viaje 5: cruza con la col, dejando la cabra sola en la orilla de salida.","Viaje 6: regresa solo.","Viaje 7: cruza con la cabra. Todos quedan a salvo."]],
+[2,3,"Tienes 8 monedas iguales, pero una pesa menos. Con una balanza de dos platos, ¿cuántas pesadas necesitas como mínimo para encontrarla?","2 pesadas",["Separa las monedas en grupos de 3, 3 y 2.","Pesada 1: 3 contra 3. Si quedan equilibradas, la falsa está entre las 2 que sobraron.","En ese caso, pesada 2: 1 contra 1, y la más ligera es la falsa.","Si en la pesada 1 un plato sube, la falsa está entre esas 3 monedas. Pesada 2: 1 contra 1; si quedan iguales, es la tercera.","En todos los casos bastan 2 pesadas."]],
+[3,1,"Un número multiplicado por 3 y luego sumándole 4 da 25. ¿Cuál es el número?","7",["Deshaz las operaciones al revés.","25 − 4 = 21.","21 ÷ 3 = 7.","Comprobación: 7 × 3 + 4 = 25."]],
+[3,1,"En una fila, Ana es la 5ª contando desde el frente y la 8ª contando desde el final. ¿Cuántas personas hay?","12 personas",["Ana se cuenta dos veces: entre las 5 de adelante y entre las 8 de atrás.","5 + 8 = 13 cuenta a Ana dos veces.","13 − 1 = 12 personas."]],
+[3,2,"La suma de tres números consecutivos es 72. ¿Cuáles son?","23, 24 y 25",["Tres consecutivos se pueden escribir como n − 1, n y n + 1.","Sumados dan 3n = 72, así que n = 24.","Los números son 23, 24 y 25.","Comprobación: 23 + 24 + 25 = 72."]],
+[3,2,"En un corral hay gallinas y conejos: 20 cabezas y 56 patas en total. ¿Cuántos conejos hay?","8 conejos (y 12 gallinas)",["Si las 20 fueran gallinas, habría 40 patas.","Sobran 56 − 40 = 16 patas.","Cada conejo tiene 2 patas más que una gallina: 16 ÷ 2 = 8 conejos.","Gallinas: 20 − 8 = 12. Comprobación: 12 × 2 + 8 × 4 = 56."]],
+[3,2,"Si hoy es miércoles, ¿qué día de la semana será dentro de 100 días?","Viernes",["Los días de la semana se repiten cada 7.","100 ÷ 7 = 14 y sobran 2, porque 14 × 7 = 98.","Dentro de 98 días vuelve a ser miércoles.","Faltan 2 días más: jueves y viernes."]],
+[3,2,"Una madre tiene 30 años y su hija 6. ¿Dentro de cuántos años la edad de la madre será el triple que la de la hija?","Dentro de 6 años",["Dentro de x años, la madre tendrá 30 + x y la hija 6 + x.","Queremos que 30 + x = 3 × (6 + x) = 18 + 3x.","Entonces 12 = 2x, así que x = 6.","Comprobación: 36 años y 12 años; 36 es el triple de 12."]],
+[4,1,"Con 3 camisas y 4 pantalones distintos, ¿cuántos conjuntos diferentes puedes formar?","12 conjuntos",["Cada camisa se puede combinar con los 4 pantalones.","Con 3 camisas son 3 × 4 combinaciones.","3 × 4 = 12 conjuntos."]],
+[4,2,"En una fiesta hay 6 personas y cada una saluda de mano a todas las demás una sola vez. ¿Cuántos saludos hay?","15 saludos",["Cada persona saluda a las otras 5: 6 × 5 = 30.","Pero así cada saludo se cuenta dos veces (A con B y B con A).","30 ÷ 2 = 15 saludos."]],
+[4,2,"¿De cuántas maneras se pueden sentar 4 personas en 4 sillas en fila?","24 maneras",["Para la primera silla hay 4 opciones.","Para la segunda quedan 3, para la tercera 2 y para la última 1.","4 × 3 × 2 × 1 = 24 maneras."]],
+[4,3,"¿Cuántos cuadrados de cualquier tamaño hay en un tablero de ajedrez de 8 × 8?","204 cuadrados",["Cuenta por tamaño. De 1 × 1 hay 8 × 8 = 64.","De 2 × 2 hay 7 × 7 = 49; de 3 × 3, 36; de 4 × 4, 25; de 5 × 5, 16; de 6 × 6, 9; de 7 × 7, 4; y de 8 × 8, 1.","Suma: 64 + 49 + 36 + 25 + 16 + 9 + 4 + 1 = 204."]],
+[4,3,"¿Cuántas diagonales tiene un hexágono?","9 diagonales",["Cada vértice se une con los que no son él ni sus dos vecinos: 6 − 3 = 3 diagonales.","6 vértices × 3 = 18, pero cada diagonal se cuenta dos veces.","18 ÷ 2 = 9 diagonales."]]
+];
+
+// Generadores de secuencias: [tipo, dificultad, función → [problema, respuesta, pasos]]
+const seq=(t,n)=>`Completa la secuencia: ${t.slice(0,n).join(", ")}, ?`;
+const GN=[
+[0,1,()=>{const a=R(1,20),d=R(2,9),t=[0,1,2,3,4].map(i=>a+i*d);
+ return[seq(t,4),""+t[4],[`Resta cada número del anterior: ${t[1]} − ${t[0]} = ${d} y ${t[2]} − ${t[1]} = ${d}.`,`La diferencia siempre es ${d}: la secuencia sube de ${d} en ${d}.`,`El siguiente es ${t[3]} + ${d} = ${t[4]}.`]]}],
+[0,2,()=>{const a=R(1,5),r=P([2,3]),t=[0,1,2,3,4].map(i=>a*r**i);
+ return[seq(t,4),""+t[4],[`Divide cada número entre el anterior: ${t[1]} ÷ ${t[0]} = ${r} y ${t[2]} ÷ ${t[1]} = ${r}.`,`Cada número es el anterior multiplicado por ${r}.`,`El siguiente es ${t[3]} × ${r} = ${t[4]}.`]]}],
+[0,2,()=>{const k=R(1,6),t=[0,1,2,3,4].map(i=>(k+i)**2);
+ return[seq(t,4),""+t[4],[`Cada número es un cuadrado perfecto: ${k}², ${k+1}², ${k+2}², ${k+3}².`,`El siguiente es ${k+4}².`,`${k+4} × ${k+4} = ${t[4]}.`]]}],
+[0,2,()=>{const s=R(1,9),t=[0,1,3,6,10,15].map(x=>s+x);
+ return[seq(t,5),""+t[5],[`Mira cuánto sube cada vez: +1, +2, +3, +4.`,`El aumento crece de 1 en 1, así que el siguiente aumento es +5.`,`${t[4]} + 5 = ${t[5]}.`]]}],
+[0,2,()=>{const a=R(1,4),b=R(1,5),t=[a,b];for(let i=2;i<6;i++)t.push(t[i-1]+t[i-2]);
+ return[seq(t,5),""+t[5],[`Prueba sumando los dos anteriores: ${t[0]} + ${t[1]} = ${t[2]}.`,`Se cumple en todos: ${t[1]} + ${t[2]} = ${t[3]} y ${t[2]} + ${t[3]} = ${t[4]}.`,`El siguiente es ${t[3]} + ${t[4]} = ${t[5]}.`]]}],
+[0,3,()=>{const a=R(1,9),da=R(2,5),b=R(5,20),db=R(5,12),t=[a,b,a+da,b+db,a+2*da,b+2*db,a+3*da];
+ return[seq(t,6),""+t[6],[`Hay dos secuencias mezcladas: los lugares impares (${t[0]}, ${t[2]}, ${t[4]}) y los pares (${t[1]}, ${t[3]}, ${t[5]}).`,`Los impares suben de ${da} en ${da}; los pares, de ${db} en ${db}.`,`El siguiente lugar es impar: ${t[4]} + ${da} = ${t[6]}.`]]}]
+];
+
+const $v=(id)=>$(id).value;
+let fase="q",t=0,pausa=false,n=0,ultimo="",act=null,vistos=new Set();
+
+function elegir(){
+ const cs=[...document.querySelectorAll("#cats input:checked")].map(c=>+c.value),nv=+$v("niv");
+ const todos=[...B.map((b,i)=>({id:i,c:b[0],n:b[1],get:()=>b.slice(2)})),...GN.map(g=>({id:-1,c:g[0],n:g[1],get:g[2]}))];
+ let it=todos.filter(x=>cs.includes(x.c)&&(!nv||x.n==nv)),aviso="";
+ if(!it.length){it=todos;aviso=" (sin problemas con ese filtro)"}
+ let cand=it.filter(x=>x.id<0||!vistos.has(x.id));
+ if(!cand.length){it.forEach(x=>vistos.delete(x.id));cand=it}
+ let x,p,i=0;do{x=P(cand);p=x.get();i++}while(p[0]==ultimo&&i<20);
+ if(x.id>=0)vistos.add(x.id);
+ return{x,p,aviso}}
+
+function nuevo(){
+ const {x,p,aviso}=elegir();
+ ultimo=p[0];n++;fase="q";t=0;act=p;
+ $("q").textContent=p[0];$("a").textContent="Respuesta: "+p[1];
+ $("e").innerHTML=p[2].map(s=>`<li>${s}</li>`).join("");
+ $("sol").classList.remove("on");$("bar").className="bar";$("bar").firstElementChild.style.width="0";
+ $("tipo").textContent=C[x.c]+", "+NIV[x.n]+aviso;$("cuenta").textContent="Problema "+n;
+ hablar(p[0])}
+function solucion(){fase="r";t=0;$("sol").classList.add("on");$("bar").className="bar res";hablar("Respuesta. "+act[1]+". "+act[2].join(" "))}
+const dur=()=>fase=="q"?+$v("tq")*1000:($("auto").checked?+$v("tr")*1000:Infinity);
+function paso(){
+ if(pausa)return;
+ t+=50*$v("vel");
+ const d=dur();$("bar").firstElementChild.style.width=(d==Infinity?100:Math.min(100,t/d*100))+"%";
+ if(t>=d){fase=="q"?solucion():nuevo()}}
+
+function hablar(txt){
+ if(!$("voz").checked||!window.speechSynthesis)return;
+ const s=txt.replace(/[«»]/g,"").replace(/−/g," menos ").replace(/\+/g," más ").replace(/×/g," por ").replace(/÷/g," entre ").replace(/=/g," igual a ")
+  .replace(/²/g," al cuadrado").replace(/→/g," luego ").replace(/\$(\d+)/g,"$1 pesos").replace(/(\d)\s?L\b/g,"$1 litros");
+ const u=new SpeechSynthesisUtterance(s);u.lang="es-MX";u.rate=Math.min(1.5,Math.max(.8,+$v("vel")));
+ speechSynthesis.cancel();speechSynthesis.speak(u)}
+
+C.forEach((c,i)=>$("cats").insertAdjacentHTML("beforeend",`<label class="chk"><input type="checkbox" value="${i}" checked> ${c}</label>`));
+$("tq").oninput=e=>$("tqv").textContent=e.target.value;
+$("tr").oninput=e=>$("trv").textContent=e.target.value;
+$("z").oninput=e=>document.documentElement.style.setProperty("--z",e.target.value);
+$("ver").onclick=()=>{if(fase=="q")solucion()};
+$("sig").onclick=nuevo;
+$("niv").onchange=nuevo;
+document.querySelectorAll("#cats input").forEach(c=>c.onchange=nuevo);
+$("voz").onchange=()=>{if($("voz").checked)hablar("Voz activada");else if(window.speechSynthesis)speechSynthesis.cancel()};
+$("pausa").onclick=()=>{pausa=!pausa;$("pausa").textContent=pausa?"Continuar":"Pausar";
+ if(window.speechSynthesis)pausa?speechSynthesis.pause():speechSynthesis.resume()};
+addEventListener("keydown",e=>{if(["SELECT","INPUT"].includes(e.target.tagName))return;
+ if(e.code=="Space"){e.preventDefault();$("pausa").click()}
+ if(e.code=="ArrowRight")nuevo();
+ if(e.key=="s"||e.key=="S")$("ver").click()});
+nuevo();setInterval(paso,50);
+</script>
+</body>
+</html>

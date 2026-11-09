@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ejercicios de matemáticas</title>
+<style>
+:root{--paper:#f5f9fd;--grid:#d3e2f1;--ink:#1c2b55;--soft:#5b6b8f;--ans:#c4284f;--card:#ffffffcc;--line:#b9cde3;--bar:#2b6fd6}
+@media (prefers-color-scheme:dark){:root{--paper:#121a2e;--grid:#1f2c4a;--ink:#e6edff;--soft:#93a3c8;--ans:#ff7a9c;--card:#162038cc;--line:#2d3d63;--bar:#6aa2ff}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--paper);color:var(--ink);font-family:system-ui,"Segoe UI",sans-serif;
+background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:32px 32px;
+display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:16px}
+.board{width:min(900px,100%);background:var(--card);border:2px solid var(--line);border-left:6px solid var(--ans);border-radius:6px;padding:28px 24px 20px;text-align:center;backdrop-filter:blur(2px)}
+.meta{display:flex;justify-content:space-between;color:var(--soft);font-size:.95rem}
+.q{font-family:"Segoe Print","Bradley Hand","Chalkboard SE","Comic Sans MS",cursive;font-size:calc(clamp(2rem,7vw,4.2rem)*var(--z,1));min-height:1.4em;margin:36px 0 10px;overflow-wrap:anywhere}
+.a{font-family:"Segoe Print","Bradley Hand","Chalkboard SE","Comic Sans MS",cursive;font-size:calc(clamp(1.8rem,6vw,3.4rem)*var(--z,1));color:var(--ans);min-height:1.4em;margin:0 0 20px;opacity:0;transition:opacity .25s}
+.a.on{opacity:1}
+.bar{height:10px;background:var(--grid);border-radius:5px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--bar)}
+.bar.res i{background:var(--ans)}
+.ctl{width:min(900px,100%);display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px}
+label{display:flex;flex-direction:column;gap:4px;font-size:.9rem;color:var(--soft)}
+select,input[type=range]{width:100%;font:inherit;color:var(--ink)}
+select{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:6px}
+.btns{display:flex;gap:8px;align-items:end}
+button{font:inherit;cursor:pointer;background:var(--ink);color:var(--paper);border:0;border-radius:4px;padding:9px 16px}
+button.alt{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+.chk{flex-direction:row;align-items:center;gap:8px;color:var(--ink)}
+.chk input{width:auto}
+details{grid-column:1/-1;border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;color:var(--soft)}
+#temas{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:6px 12px;margin:10px 0}
+:focus-visible{outline:3px solid var(--bar);outline-offset:2px}
+</style>
+</head>
+<body>
+<main class="board">
+  <div class="meta"><span id="grado"></span><span id="cuenta"></span></div>
+  <div class="q" id="q" aria-live="polite"></div>
+  <div class="a" id="a"></div>
+  <div class="bar" id="bar"><i></i></div>
+</main>
+<section class="ctl">
+  <label>Desde
+    <select id="lo"></select></label>
+  <label>Hasta
+    <select id="hi"></select></label>
+  <label>Tiempo del problema: <b id="tqv">5</b> s
+    <input type="range" id="tq" min="2" max="30" value="5"></label>
+  <label>Tiempo del resultado: <b id="trv">3</b> s
+    <input type="range" id="tr" min="1" max="15" value="3"></label>
+  <label>Velocidad
+    <select id="vel"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label>
+  <label>Tamaño de letra
+    <input type="range" id="z" min="0.6" max="1.8" step="0.1" value="1"></label>
+  <label class="chk"><input type="checkbox" id="voz"> Leer en voz alta</label>
+  <label class="chk"><input type="checkbox" id="snd"> Sonido del resultado</label>
+  <div class="btns">
+    <button id="pausa">Pausar</button>
+    <button id="sig" class="alt">Siguiente</button>
+  </div>
+  <details open>
+    <summary>Temas</summary>
+    <div id="temas"></div>
+    <button id="todos" class="alt">Marcar todos</button>
+  </details>
+</section>
+
+<script>
+const R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a, P=a=>a[R(0,a.length-1)];
+const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
+const fr=(n,d)=>{const g=gcd(n,d);n/=g;d/=g;if(d<0){n=-n;d=-d}return d==1?""+n:n+"/"+d};
+const sg=n=>n<0?"("+n+")":""+n, sx=n=>(n<0?"− ":"+ ")+Math.abs(n), sup=n=>"⁰¹²³⁴⁵⁶⁷⁸⁹"[n];
+const nz=(a,b)=>{let n=0;while(!n)n=R(a,b);return n};
+const tri=()=>{const t=P([[3,4,5],[5,12,13],[8,15,17],[6,8,10],[7,24,25]]),k=R(1,3);return t.map(v=>v*k)};
+
+const NOMBRES=["1° Primaria","2° Primaria","3° Primaria","4° Primaria","5° Primaria","6° Primaria","1° Secundaria","2° Secundaria","3° Secundaria","1° Prepa","2° Prepa","3° Prepa"];
+
+const G=[
+ // 1° primaria
+ ()=>{if(R(0,1)){const a=R(1,10),b=R(1,20-a);return[`${a} + ${b}`,a+b]}const a=R(3,20),b=R(1,a-1);return[`${a} − ${b}`,a-b]},
+ // 2°
+ ()=>{if(R(0,1)){const a=R(10,80),b=R(5,99-a);return[`${a} + ${b}`,a+b]}const a=R(30,99),b=R(5,a-5);return[`${a} − ${b}`,a-b]},
+ // 3°
+ ()=>{if(R(0,1)){const a=R(2,10),b=R(2,10);return[`${a} × ${b}`,a*b]}const a=R(2,10),b=R(2,10);return[`${a*b} ÷ ${a}`,b]},
+ // 4°
+ ()=>{const t=R(0,2);if(t==0){const a=R(120,999),b=R(100,999);return[`${a} + ${b}`,a+b]}
+  if(t==1){const a=R(12,99),b=R(3,9);return[`${a} × ${b}`,a*b]}const b=R(3,12),c=R(11,60);return[`${b*c} ÷ ${b}`,c]},
+ // 5°
+ ()=>{const t=R(0,2);if(t==0){const d=R(4,12),a=R(1,d-3),b=R(1,d-1-a);return[`${a}/${d} + ${b}/${d}`,fr(a+b,d)]}
+  if(t==1){const a=R(11,99)/10,b=R(11,99)/10;return[`${a.toFixed(1)} + ${b.toFixed(1)}`,(a+b).toFixed(1)]}
+  const p=P([10,20,25,50]),n=P([40,80,120,200]);return[`${p}% de ${n}`,n*p/100]},
+ // 6°
+ ()=>{const t=R(0,3);if(t==0){const b=P([2,3,4,5,6]),d=P([2,3,4,5,6]),a=R(1,b-1||1),c=R(1,d-1||1);return[`${a}/${b} + ${c}/${d}`,fr(a*d+c*b,b*d)]}
+  if(t==1){const a=R(2,9)/10,b=R(2,9);return[`${a.toFixed(1)} × ${b}`,(a*b).toFixed(1)]}
+  if(t==2){const a=P([4,6,8,9,10,12]),b=P([6,8,10,12,15]);return[`m.c.m. de ${a} y ${b}`,a*b/gcd(a,b)]}
+  const a=R(2,9),b=R(2,9),c=R(2,9),d=R(2,9);return[`${a}/${b} × ${c}/${d}`,fr(a*c,b*d)]},
+ // 1° sec
+ ()=>{const t=R(0,3);if(t==0){const a=nz(-15,15),b=nz(-15,15);return[`${sg(a)} + ${sg(b)}`,a+b]}
+  if(t==1){const a=nz(-9,9),b=nz(-9,9);return[`${sg(a)} × ${sg(b)}`,a*b]}
+  if(t==2){const a=R(2,15);return[`${a}²`,a*a]}
+  const x=R(-12,20),a=nz(-12,12);return[`x ${sx(a)} = ${x+a}`,"x = "+x]},
+ // 2° sec
+ ()=>{const t=R(0,3);if(t==0){const x=R(-9,9),a=R(2,9),b=nz(-9,9);return[`${a}x ${sx(b)} = ${a*x+b}`,"x = "+x]}
+  if(t==1){const a=R(2,6),k=R(2,9),n=R(2,9);return[`Si ${a} cuadernos cuestan $${a*k}, ¿cuánto cuestan ${a+n}?`,"$"+k*(a+n)]}
+  if(t==2){const b=R(2,12)*2,h=R(2,12);return[`Área del triángulo: base ${b}, altura ${h}`,b*h/2]}
+  const a=R(2,12);return[`√${a*a}`,a]},
+ // 3° sec
+ ()=>{const t=R(0,3);if(t==0){const [a,b,c]=tri();return[`Catetos ${a} y ${b}: ¿hipotenusa?`,c]}
+  if(t==1){const x=R(-6,6),y=R(-6,6);return[`x + y = ${x+y}  ;  x − y = ${x-y}`,`x = ${x}, y = ${y}`]}
+  let p,q;do{p=nz(-7,7);q=nz(-7,7)}while(p+q==0);return[`x² ${sx(-(p+q))}x ${sx(p*q)} = 0`,p==q?`x = ${p}`:`x = ${p}, x = ${q}`]},
+ // 1° prepa
+ ()=>{const t=R(0,3);if(t==0){const a=nz(-9,9);return[`(x ${sx(a)})²`,`x² ${sx(2*a)}x ${sx(a*a)}`]}
+  if(t==1){const a=R(2,12);return[`Factoriza x² − ${a*a}`,`(x − ${a})(x + ${a})`]}
+  if(t==2){const a=nz(-4,4),b=nz(-9,9),c=nz(-9,9),x=R(-3,3);return[`f(x) = ${a}x² ${sx(b)}x ${sx(c)}; f(${x})`,a*x*x+b*x+c]}
+  let x1=R(-5,5),y1=R(-5,5),dx=nz(-5,5),dy=R(-8,8);return[`Pendiente entre (${x1}, ${y1}) y (${x1+dx}, ${y1+dy})`,fr(dy,dx)]},
+ // 2° prepa
+ ()=>{const t=R(0,4);if(t==0){const [f,r]=P([["sen 30°","1/2"],["cos 60°","1/2"],["sen 90°","1"],["cos 0°","1"],["tan 45°","1"],["cos 90°","0"]]);return[f,r]}
+  if(t==1){const b=P([2,3,5,10]),n=R(2,4);return[`log${String(b).split("").map(d=>"₀₁₂₃₄₅₆₇₈₉"[d]).join("")}(${b**n})`,n]}
+  if(t==2){const a=R(1,10),d=nz(-5,5),n=R(5,12);return[`Progresión aritmética: a₁ = ${a}, d = ${d}. ¿a${String(n).split("").map(x=>"₀₁₂₃₄₅₆₇₈₉"[x]).join("")}?`,a+(n-1)*d]}
+  if(t==3){const a=R(1,3),b=nz(-8,8),c=nz(-8,8);return[`Discriminante de ${a}x² ${sx(b)}x ${sx(c)}`,b*b-4*a*c]}
+  const [a,b,c]=tri();return[`Distancia entre (0, 0) y (${a}, ${b})`,c]},
+ // 3° prepa
+ ()=>{const t=R(0,3);if(t==0){const a=R(2,9),n=R(2,6);return[`d/dx (${a}x${sup(n)})`,`${a*n}x${n-1==1?"":sup(n-1)}`]}
+  if(t==1){const n=R(1,4),k=R(1,5),a=(n+1)*k;return[`∫ ${a}x${n==1?"":sup(n)} dx`,`${k}x${sup(n+1)} + C`]}
+  if(t==2){const a=R(1,9);return[`lím x→${a} (x² − ${a*a}) / (x − ${a})`,2*a]}
+  const a=R(2,9),b=R(2,9);return[`d/dx (${a}x² + ${b}x)  en x = 1`,2*a+b]}
+];
+
+// Conversiones de unidades: peso, medidas (longitud y capacidad) y tiempo
+const U=[
+ {a:["kilogramo","kilogramos"],b:["gramo","gramos"],f:1000,l:0},
+ {a:["metro","metros"],b:["centímetro","centímetros"],f:100,l:0},
+ {a:["hora","horas"],b:["minuto","minutos"],f:60,l:0},
+ {a:["día","días"],b:["hora","horas"],f:24,l:0},
+ {a:["semana","semanas"],b:["día","días"],f:7,l:0},
+ {a:["litro","litros"],b:["mililitro","mililitros"],f:1000,l:1},
+ {a:["kilómetro","kilómetros"],b:["metro","metros"],f:1000,l:1},
+ {a:["centímetro","centímetros"],b:["milímetro","milímetros"],f:10,l:1},
+ {a:["minuto","minutos"],b:["segundo","segundos"],f:60,l:1},
+ {a:["año","años"],b:["mes","meses"],f:12,l:1},
+ {a:["tonelada","toneladas"],b:["kilogramo","kilogramos"],f:1000,l:1},
+ {a:["gramo","gramos"],b:["miligramo","miligramos"],f:1000,l:2},
+ {a:["metro","metros"],b:["milímetro","milímetros"],f:1000,l:2}
+];
+const conv=g=>{
+ const lvl=g<4?0:g<6?1:2, e=P(U.filter(u=>u.l<=lvl));
+ if(e.a[0]=="hora"&&e.b[0]=="minuto"&&lvl>=1&&R(0,2)==0){
+  const h=R(2,5),m=P([10,15,20,30,45]);return[`Convierte: ${h} horas y ${m} minutos a minutos`,`${h*60+m} minutos`]}
+ const x=lvl==2&&R(0,2)==0?R(1,9)+0.5:R(2,12);
+ if(lvl==0||R(0,1)) return[`Convierte: ${x} ${x==1?e.a[0]:e.a[1]} a ${e.b[1]}`,`${x*e.f} ${e.b[1]}`];
+ return[`Convierte: ${x*e.f} ${e.b[1]} a ${e.a[1]}`,`${x} ${x==1?e.a[0]:e.a[1]}`]};
+for(let g=1;g<=7;g++){const o=G[g];G[g]=()=>R(0,3)==0?conv(g):o()}
+
+const $=id=>document.getElementById(id);
+const lo=$("lo"),hi=$("hi");
+NOMBRES.forEach((n,i)=>{lo.add(new Option(n,i));hi.add(new Option(n,i))});
+lo.value=0;hi.value=11;
+
+let fase="q",t=0,pausa=false,n=0,gr=0,ultimo="",actual="";
+const T=["Sumas","Restas","Multiplicación","División","Fracciones y m.c.m.","Decimales y porcentajes","Potencias y raíces","Álgebra y ecuaciones","Geometría","Trigonometría y logaritmos","Cálculo","Conversiones de unidades"];
+const tema=q=>{
+ if(/^Convierte/.test(q))return 11;
+ if(/d\/dx|∫|lím/.test(q))return 10;
+ if(/\b(sen|cos|tan)\b|log/.test(q))return 9;
+ if(/Área|Catetos|Distancia|Pendiente/.test(q))return 8;
+ if(/x|f\(|Discriminante|Factoriza|Progresión|cuadernos/.test(q))return 7;
+ if(/%|\d\.\d/.test(q))return 5;
+ if(/\d\/\d|m\.c\.m/.test(q))return 4;
+ if(/√|²/.test(q))return 6;
+ if(/÷/.test(q))return 3;if(/×/.test(q))return 2;if(/\+/.test(q))return 0;return 1};
+
+const SUB="₀₁₂₃₄₅₆₇₈₉",SUP="⁰¹²³⁴⁵⁶⁷⁸⁹";
+const hablar=txt=>{
+ if(!$("voz").checked||!window.speechSynthesis)return;
+ const s=txt.replace(/d\/dx/g,"derivada de").replace(/∫/g,"integral de ").replace(/ dx/g," diferencial de x")
+ .replace(/lím/g,"límite").replace(/→/g," tiende a ")
+ .replace(/log([₀-₉]+)/g,(m,d)=>"logaritmo base "+[...d].map(c=>SUB.indexOf(c)).join(""))
+ .replace(/[₀-₉]/g,c=>" "+SUB.indexOf(c))
+ .replace(/\bsen\b/g,"seno").replace(/\bcos\b/g,"coseno").replace(/\btan\b/g,"tangente")
+ .replace(/m\.c\.m\./g,"mínimo común múltiplo")
+ .replace(/(^|[\s(=])-(\d)/g,"$1menos $2")
+ .replace(/\$(\d+)/g,"$1 pesos")
+ .replace(/(\d)\.(\d)/g,"$1 punto $2")
+ .replace(/(\d)\/(\d)/g,"$1 sobre $2").replace(/\//g," entre ")
+ .replace(/−/g," menos ").replace(/\+/g," más ").replace(/×/g," por ").replace(/÷/g," entre ").replace(/=/g," igual a ")
+ .replace(/%/g," por ciento").replace(/√/g,"raíz cuadrada de ").replace(/°/g," grados")
+ .replace(/²/g," al cuadrado").replace(/³/g," al cubo").replace(/[⁴-⁹]/g,c=>" a la "+SUP.indexOf(c)).replace(/[()]/g," ");
+ const u=new SpeechSynthesisUtterance(s);u.lang="es-MX";u.rate=Math.min(1.5,Math.max(.8,+$("vel").value));
+ speechSynthesis.cancel();speechSynthesis.speak(u)};
+
+let ac;
+const ding=()=>{
+ if(!$("snd").checked)return;
+ try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume();
+  [[660,0],[880,.12]].forEach(([f,d])=>{const o=ac.createOscillator(),g=ac.createGain(),b=ac.currentTime+d;
+   o.type="sine";o.frequency.value=f;
+   g.gain.setValueAtTime(.0001,b);g.gain.exponentialRampToValueAtTime(.2,b+.02);g.gain.exponentialRampToValueAtTime(.0001,b+.3);
+   o.connect(g).connect(ac.destination);o.start(b);o.stop(b+.32)})}catch(e){}};
+const dur=()=>(fase=="q"?+$("tq").value:+$("tr").value)*1000;
+
+function nuevo(){
+  let a=+lo.value,b=+hi.value;if(a>b)[a,b]=[b,a];
+  const ok=[...document.querySelectorAll("#temas input:checked")].map(c=>+c.value);
+  let q,r,tm,i=0;
+  do{gr=R(a,b);[q,r]=G[gr]();tm=tema(q);i++}while(i<1000&&(q==ultimo||!ok.includes(tm)));
+  ultimo=q;n++;fase="q";t=0;
+  $("q").textContent=q;$("a").textContent="= "+r;$("a").classList.remove("on");
+  actual=(/=/.test(String(r))?"":"= ")+r;$("a").textContent=actual;
+  $("grado").textContent=NOMBRES[gr]+", "+T[tm]+(ok.includes(tm)?"":" (sin los temas elegidos en este nivel)");hablar(q);$("cuenta").textContent="Problema "+n;
+  $("bar").className="bar";
+}
+function mostrar(){fase="r";t=0;$("a").classList.add("on");$("bar").className="bar res";ding();hablar(actual)}
+function paso(){
+  if(pausa)return;
+  t+=50*$("vel").value;
+  $("bar").firstElementChild.style.width=Math.min(100,t/dur()*100)+"%";
+  if(t>=dur()){fase=="q"?mostrar():nuevo()}
+}
+$("tq").oninput=e=>$("tqv").textContent=e.target.value;
+$("tr").oninput=e=>$("trv").textContent=e.target.value;
+$("pausa").onclick=()=>{pausa=!pausa;$("pausa").textContent=pausa?"Continuar":"Pausar";
+  if(window.speechSynthesis)pausa?speechSynthesis.pause():speechSynthesis.resume()};
+$("z").oninput=e=>document.documentElement.style.setProperty("--z",e.target.value);
+$("snd").onchange=()=>{if($("snd").checked)ding()};
+$("voz").onchange=()=>{if($("voz").checked)hablar("Voz activada");else if(window.speechSynthesis)speechSynthesis.cancel()};
+T.forEach((n,i)=>$("temas").insertAdjacentHTML("beforeend",`<label class="chk"><input type="checkbox" value="${i}" checked> ${n}</label>`));
+$("todos").onclick=()=>$("temas").querySelectorAll("input").forEach(c=>c.checked=true);
+$("sig").onclick=nuevo;
+lo.onchange=hi.onchange=nuevo;
+addEventListener("keydown",e=>{if(e.target.tagName=="SELECT"||e.target.tagName=="INPUT")return;
+  if(e.code=="Space"){e.preventDefault();$("pausa").click()}
+  if(e.code=="ArrowRight")nuevo()});
+nuevo();setInterval(paso,50);
+</script>
+</body>
+</html>
